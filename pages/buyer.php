@@ -114,7 +114,7 @@ if (!isset($_SESSION['id']) || $_SESSION['role'] !== 'buyer') {
         <section class="page" id="findProduce">
           <div class="panel">
             <div class="search-box">
-              <input id="productSearch" type="text" placeholder="Type at least 3 characters to search (e.g. wheat)..." autocomplete="off">
+              <input id="productSearch" type="text" placeholder="Search for wheat, rice, etc..." autocomplete="off">
               <button type="button" class="btn-primary" id="searchBtn"><i class="fa-solid fa-magnifying-glass"></i> Search</button>
             </div>
           </div>
@@ -123,7 +123,7 @@ if (!isset($_SESSION['id']) || $_SESSION['role'] !== 'buyer') {
               <h2>Available Produce from Farmers</h2>
             </div>
             <div id="searchResults" class="data-grid">
-                <p style="padding:20px; color:#6b7280;">Start typing to see live results...</p>
+                <p style="padding:20px; color:#6b7280;">Loading produce catalog...</p>
             </div>
             <div id="paginationControls" style="display:flex; justify-content:center; gap:10px; margin-top:20px; align-items:center;">
               <!-- Pagination buttons injected here -->

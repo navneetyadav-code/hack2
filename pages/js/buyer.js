@@ -21,6 +21,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (targetPage.id === "dashboard") loadDashboard();
         if (targetPage.id === "orders") loadOrders();
         if (targetPage.id === "cartPage") renderCartPage();
+        if (targetPage.id === "findProduce") searchProducts('');
     };
 
     document.querySelectorAll(".nav-btn").forEach(btn => {
@@ -39,14 +40,16 @@ document.addEventListener("DOMContentLoaded", () => {
         if (val.length >= 3) {
             searchProducts(val);
         } else if (val.length === 0) {
-            document.getElementById("searchResults").innerHTML = '<p style="padding:20px; color:#6b7280;">Start typing to see live results...</p>';
+            searchProducts('');
         }
     });
     
     document.getElementById("searchBtn").addEventListener("click", () => {
-        const val = searchInput.value.trim();
-        if (val.length >= 3) searchProducts(val);
+        searchProducts(searchInput.value.trim());
     });
+    
+    // Initial load for catalog
+    searchProducts('');
 
     // Logout
     document.getElementById("logoutBtn").addEventListener("click", () => {
