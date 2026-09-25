@@ -23,7 +23,10 @@ session_start();
       </div>
       
       <nav class="nav-menu">
-        <button class="nav-btn active" data-page="inventory">
+        <button class="nav-btn active" data-page="dashboard">
+          <i class="fa-solid fa-house"></i> Dashboard
+        </button>
+        <button class="nav-btn" data-page="inventory">
           <i class="fa-solid fa-boxes-stacked"></i> Inventory
         </button>
         <button class="nav-btn" data-page="shipments">
@@ -47,8 +50,52 @@ session_start();
       </header>
 
       <div class="content-area">
+        <!-- DASHBOARD PAGE -->
+        <section class="page active" id="dashboard">
+          <div class="stats-grid">
+            <div class="stat-card primary-stat">
+              <div class="stat-icon"><i class="fa-solid fa-indian-rupee-sign"></i></div>
+              <div class="stat-info">
+                <p>Total Revenue</p>
+                <h3 id="dashRevenue">₹0.00</h3>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon"><i class="fa-solid fa-boxes-stacked"></i></div>
+              <div class="stat-info">
+                <p>Active Inventory</p>
+                <h3 id="dashActiveInventory">0</h3>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon"><i class="fa-solid fa-truck-fast"></i></div>
+              <div class="stat-info">
+                <p>Pending Orders</p>
+                <h3 id="dashPendingOrders">0</h3>
+              </div>
+            </div>
+          </div>
+          
+          <div class="split-view mt-4">
+            <div class="panel">
+              <div class="panel-header">
+                <h2>Recent Orders</h2>
+                <button class="btn-text" onclick="document.querySelector('[data-page=\'shipments\']').click()">View All</button>
+              </div>
+              <div id="dashRecentOrders" class="compact-list" style="margin-top:15px;"></div>
+            </div>
+            <div class="panel">
+              <div class="panel-header">
+                <h2>Low Stock Produce</h2>
+                <button class="btn-text" onclick="document.querySelector('[data-page=\'inventory\']').click()">Manage</button>
+              </div>
+              <div id="dashLowStock" class="compact-list" style="margin-top:15px;"></div>
+            </div>
+          </div>
+        </section>
+
         <!-- INVENTORY PAGE -->
-        <section class="page active" id="inventory">
+        <section class="page" id="inventory">
           <div class="page-actions">
             <h2>Manage Inventory</h2>
             <button class="btn-primary" id="addInventoryBtn"><i class="fa-solid fa-plus"></i> Add Produce</button>
