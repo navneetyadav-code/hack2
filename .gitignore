@@ -1,0 +1,12 @@
+# Configuration / secrets
+db_config.php
+.env
+
+# Dependencies
+/vendor/
+
+# Logs
+*.log
+
+# Uploaded files
+/uploads/*
