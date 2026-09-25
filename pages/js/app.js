@@ -148,14 +148,25 @@ async function loadOrders() {
     }
 }
 
-function renderOrders() {
+function renderOrders(filterText = "") {
     const container = document.getElementById("shipmentsList");
     if (state.orders.length === 0) {
         container.innerHTML = "<p style='padding:20px;'>No orders received yet.</p>";
         return;
     }
 
-    container.innerHTML = state.orders.map(o => {
+    const filteredOrders = state.orders.filter(o => {
+        if (!filterText) return true;
+        const searchStr = `${o.tracking_number} ${o.buyer_name} ${o.id} ${o.status}`.toLowerCase();
+        return searchStr.includes(filterText);
+    });
+
+    if (filteredOrders.length === 0) {
+        container.innerHTML = "<p style='padding:20px;'>No orders match your search.</p>";
+        return;
+    }
+
+    container.innerHTML = filteredOrders.map(o => {
         return `
         <div class="panel" style="margin-bottom: 20px;">
             <div class="panel-header" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;" onclick="toggleOrderDetails(${o.id})">
