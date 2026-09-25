@@ -43,3 +43,4 @@ create a db named `my_db` and import the sql file in your myphpadmin
  > :warning: **don't forget to give it a star**
 
 
+By - Rajhans
