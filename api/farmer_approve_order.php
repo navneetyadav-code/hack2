@@ -19,12 +19,11 @@ if (!isset($data['order_id'], $data['status'])) {
 }
 
 $order_id = intval($data['order_id']);
-$new_status = $data['status']; // e.g. 'approved', 'rejected', 'transit', 'delivered'
+$new_status = $data['status']; // 'approved' or 'rejected'
 
 mysqli_begin_transaction($conn);
 try {
-    // Check if order belongs to farmer
-    $stmt = mysqli_prepare($conn, "SELECT status FROM orders WHERE id = ? AND farmer_id = ? FOR UPDATE");
+    $stmt = mysqli_prepare($conn, "SELECT status, tracking_number FROM orders WHERE id = ? AND farmer_id = ? FOR UPDATE");
     mysqli_stmt_bind_param($stmt, "ii", $order_id, $farmer_id);
     mysqli_stmt_execute($stmt);
     $res = mysqli_stmt_get_result($stmt);
@@ -33,7 +32,7 @@ try {
     }
 
     if ($order['status'] === 'pending' && $new_status === 'approved') {
-        // Deduct stock!
+        // Deduct stock
         $item_stmt = mysqli_prepare($conn, "SELECT product_id, quantity FROM order_items WHERE order_id = ?");
         mysqli_stmt_bind_param($item_stmt, "i", $order_id);
         mysqli_stmt_execute($item_stmt);
@@ -43,7 +42,6 @@ try {
             $p_id = $it['product_id'];
             $qty = $it['quantity'];
             
-            // Lock product
             $p_stmt = mysqli_prepare($conn, "SELECT quantity FROM products WHERE id = ? FOR UPDATE");
             mysqli_stmt_bind_param($p_stmt, "i", $p_id);
             mysqli_stmt_execute($p_stmt);
@@ -58,10 +56,23 @@ try {
                 mysqli_stmt_execute($upd_p);
             }
         }
-        $new_status = 'picked_up'; // Let's call the first active stage 'picked_up'
+        
+        // Create Shipment
+        $qr_text = 'QR-' . $order['tracking_number'] . '-' . mt_rand(1000, 9999);
+        $ins_ship = mysqli_prepare($conn, "INSERT INTO shipments (tracking_id, order_id, qr_code_text, status) VALUES (?, ?, ?, 'PENDING')");
+        mysqli_stmt_bind_param($ins_ship, "sis", $order['tracking_number'], $order_id, $qr_text);
+        mysqli_stmt_execute($ins_ship);
+        
+        $shipment_id = mysqli_insert_id($conn);
+        
+        // Log creation
+        $ins_log = mysqli_prepare($conn, "INSERT INTO shipment_logs (shipment_id, status, updated_by) VALUES (?, 'PENDING', ?)");
+        mysqli_stmt_bind_param($ins_log, "ii", $shipment_id, $farmer_id);
+        mysqli_stmt_execute($ins_log);
+
+        $new_status = 'approved';
     }
 
-    // Update order status
     $upd_o = mysqli_prepare($conn, "UPDATE orders SET status = ? WHERE id = ?");
     mysqli_stmt_bind_param($upd_o, "si", $new_status, $order_id);
     mysqli_stmt_execute($upd_o);

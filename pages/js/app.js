@@ -194,19 +194,15 @@ function renderOrders(filterText = "") {
                 </div>
                 ${o.status === 'pending' ? `
                 <div class="form-actions mt-4" style="border-top:1px solid #eee; padding-top:15px;">
-                    <button class="btn-primary" style="background:#16a34a;" onclick="updateOrderStatus(${o.id}, 'approved')"><i class="fa-solid fa-check"></i> Approve & Deduct Stock</button>
+                    <button class="btn-primary" style="background:#16a34a;" onclick="updateOrderStatus(${o.id}, 'approved')"><i class="fa-solid fa-check"></i> Approve & Generate QR</button>
                     <button class="btn-secondary" style="color:#b91c1c; border-color:#b91c1c;" onclick="updateOrderStatus(${o.id}, 'rejected')"><i class="fa-solid fa-xmark"></i> Reject Order</button>
                 </div>
                 ` : `
-                ${['picked_up', 'transit', 'dispatched'].includes(o.status) ? `
-                <div class="form-actions mt-4" style="border-top:1px solid #eee; padding-top:15px;">
-                    <select id="status_${o.id}" style="padding:8px; border-radius:4px; border:1px solid #ccc; margin-right:10px;">
-                        <option value="picked_up" ${o.status==='picked_up'?'selected':''}>Picked Up</option>
-                        <option value="transit" ${o.status==='transit'?'selected':''}>In Transit</option>
-                        <option value="dispatched" ${o.status==='dispatched'?'selected':''}>Dispatched</option>
-                        <option value="delivered" ${o.status==='delivered'?'selected':''}>Delivered</option>
-                    </select>
-                    <button class="btn-primary" onclick="updateOrderStatus(${o.id}, document.getElementById('status_${o.id}').value)">Update Status</button>
+                ${(o.status === 'approved' && o.qr_code_text) ? `
+                <div class="mt-4" style="border-top:1px solid #eee; padding-top:15px; text-align:center;">
+                    <p style="font-weight:bold; margin-bottom:10px;">Package Tracking QR Code</p>
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(o.qr_code_text)}" alt="QR Code" style="border: 5px solid #fff; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border-radius: 8px;">
+                    <p style="margin-top:10px; color:#6b7280; font-size:12px;">Waiting for collection point to scan.</p>
                 </div>
                 ` : ''}
                 `}

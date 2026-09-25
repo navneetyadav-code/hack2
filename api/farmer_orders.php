@@ -13,7 +13,14 @@ $farmer_id = $_SESSION['id'];
 $method = $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'GET') {
-    $query = "SELECT o.*, u.name as buyer_name FROM orders o JOIN users u ON o.buyer_id = u.id WHERE o.farmer_id = ? ORDER BY o.created_at DESC";
+    $query = "
+        SELECT o.*, u.name as buyer_name, s.qr_code_text, s.status as shipment_status
+        FROM orders o 
+        JOIN users u ON o.buyer_id = u.id 
+        LEFT JOIN shipments s ON o.id = s.order_id
+        WHERE o.farmer_id = ? 
+        ORDER BY o.created_at DESC
+    ";
     $stmt = mysqli_prepare($conn, $query);
     mysqli_stmt_bind_param($stmt, "i", $farmer_id);
     mysqli_stmt_execute($stmt);

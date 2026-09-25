@@ -10,7 +10,18 @@ if (!isset($_SESSION['id']) || $_SESSION['role'] !== 'buyer') {
 }
 
 $buyer_id = $_SESSION['id'];
-$query = "SELECT o.*, u.name as farmer_name FROM orders o JOIN users u ON o.farmer_id = u.id WHERE o.buyer_id = ? ORDER BY o.created_at DESC";
+$query = "
+    SELECT 
+        o.*, 
+        u.name as farmer_name,
+        s.id as shipment_id,
+        s.status as shipment_status
+    FROM orders o 
+    JOIN users u ON o.farmer_id = u.id 
+    LEFT JOIN shipments s ON o.id = s.order_id
+    WHERE o.buyer_id = ? 
+    ORDER BY o.created_at DESC
+";
 $stmt = mysqli_prepare($conn, $query);
 mysqli_stmt_bind_param($stmt, "i", $buyer_id);
 mysqli_stmt_execute($stmt);
@@ -28,6 +39,20 @@ while ($row = mysqli_fetch_assoc($result)) {
         $items[] = $i_row;
     }
     $row['items'] = $items;
+    
+    // Fetch logs
+    $logs = [];
+    if ($row['shipment_id']) {
+        $log_stmt = mysqli_prepare($conn, "SELECT status, updated_at FROM shipment_logs WHERE shipment_id = ? ORDER BY updated_at ASC");
+        mysqli_stmt_bind_param($log_stmt, "i", $row['shipment_id']);
+        mysqli_stmt_execute($log_stmt);
+        $log_res = mysqli_stmt_get_result($log_stmt);
+        while ($l_row = mysqli_fetch_assoc($log_res)) {
+            $logs[] = $l_row;
+        }
+    }
+    $row['logs'] = $logs;
+    
     $orders[] = $row;
 }
 echo json_encode($orders);
