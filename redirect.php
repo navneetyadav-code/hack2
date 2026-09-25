@@ -5,20 +5,16 @@
    include "db_conn.php";
    if (isset($_SESSION['username']) && isset($_SESSION['id'])) {   
          //admin
-      	if ($_SESSION['role'] == 'admin'){
-			header("Location: pages/admin.php");
+      	if ($_SESSION['role'] == 'farmer'){
+			header("Location: pages/farmer.php");
       	 }
 		 //teacher
-		 else if ($_SESSION['role'] == 'teacher'){ 
-			header("Location: pages/teacher.php");
+		 else if ($_SESSION['role'] == 'transporter'){ 
+			header("Location: pages/transporter.php");
       	} 
 		//student
-		  else if ($_SESSION['role'] == 'student'){ 
-			header("Location: pages/student.php");	
-		}
-		//parent
-		else if ($_SESSION['role'] == 'parent'){ 
-			header("Location: pages/parent.php");
+		  else if ($_SESSION['role'] == 'buyer'){ 
+			header("Location: pages/buyer.php");	
 		}
  }
 else{

@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Farmer dashboard for rural agricultural supply-chain tracking.">
+  <title>FieldFlow — Farmer Command Center</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="brand-mark">F</div>
+        <div><strong>FieldFlow</strong><span>Supply Network</span></div>
+      </div>
+
+      <div class="role-card">
+        <span class="eyebrow">ACTIVE ROLE</span>
+        <div class="role-line"><span class="role-dot"></span><strong>Farmer Portal</strong></div>
+        <small>Rajesh Kumar · Haryana</small>
+      </div>
+
+      <nav class="nav">
+        <a class="nav-item active" href="#dashboard" data-view="dashboard"><span>⌂</span>Overview</a>
+        <a class="nav-item" href="#stock" data-view="stock"><span>▦</span>My Stock <b>3</b></a>
+        <a class="nav-item" href="#orders" data-view="orders"><span>↗</span>Buyer Orders <b class="hot">4</b></a>
+        <a class="nav-item" href="#shipments" data-view="shipments"><span>◇</span>Shipments</a>
+        <a class="nav-item" href="#tracking" data-view="tracking"><span>⌖</span>Live Tracking</a>
+        <a class="nav-item" href="#reports" data-view="reports"><span>◒</span>Reports</a>
+      </nav>
+
+      <div class="sidebar-foot">
+        <div class="sync"><span class="pulse"></span><div><strong>Network synced</strong><small>Last sync 42 sec ago</small></div></div>
+        <button class="ghost-btn" id="logoutBtn">↪ Sign out</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <button class="icon-btn menu-btn" id="menuBtn" aria-label="Open menu">☰</button>
+        <div class="crumb"><span>Farmer Portal</span><i>/</i><strong id="pageTitle">Overview</strong></div>
+        <div class="top-actions">
+          <button class="icon-btn" title="Search">⌕</button>
+          <button class="icon-btn notification" id="notificationBtn" title="Notifications">♢<em>4</em></button>
+          <div class="avatar">RK</div>
+        </div>
+      </header>
+
+      <section class="content" id="dashboardView">
+        <div class="hero">
+          <div>
+            <span class="eyebrow">FARM OPERATIONS · 25 SEP 2026</span>
+            <h1>Good evening, Rajesh<span class="accent">.</span></h1>
+            <p>Your farm-to-buyer chain is moving. Here’s the operational picture right now.</p>
+          </div>
+          <button class="primary-btn" id="addStockBtn">＋ Add stock</button>
+        </div>
+
+        <div class="metrics">
+          <article class="metric-card">
+            <div class="metric-head"><span class="metric-icon green">▦</span><span class="trend up">↑ 12.4%</span></div>
+            <strong class="metric-value">1,250 <small>kg</small></strong>
+            <span class="metric-label">Available stock</span>
+            <div class="spark"><i style="height:38%"></i><i style="height:52%"></i><i style="height:46%"></i><i style="height:67%"></i><i style="height:58%"></i><i style="height:78%"></i><i style="height:92%"></i></div>
+          </article>
+          <article class="metric-card">
+            <div class="metric-head"><span class="metric-icon amber">↗</span><span class="trend">4 awaiting</span></div>
+            <strong class="metric-value">8</strong>
+            <span class="metric-label">Buyer orders</span>
+            <div class="mini-bar"><span style="width:64%"></span></div>
+          </article>
+          <article class="metric-card">
+            <div class="metric-head"><span class="metric-icon blue">◇</span><span class="trend blue-t">2 moving</span></div>
+            <strong class="metric-value">3</strong>
+            <span class="metric-label">Active shipments</span>
+            <div class="route-mini"><span>Haryana</span><b>→</b><span>Delhi</span></div>
+          </article>
+          <article class="metric-card highlight">
+            <div class="metric-head"><span class="metric-icon dark">₹</span><span class="trend light">This month</span></div>
+            <strong class="metric-value">₹34.8k</strong>
+            <span class="metric-label">Order value processed</span>
+            <div class="progress"><span style="width:72%"></span></div>
+          </article>
+        </div>
+
+        <div class="grid-main">
+          <section class="panel orders-panel">
+            <div class="panel-head">
+              <div><span class="eyebrow">ACTION QUEUE</span><h2>Recent buyer orders</h2></div>
+              <button class="text-btn" data-view-link="orders">View all →</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Order</th><th>Buyer</th><th>Produce</th><th>Qty</th><th>Status</th><th></th></tr></thead>
+                <tbody id="ordersTable">
+                  <tr data-order="ORD-1024"><td><strong>#ORD-1024</strong><small>Today · 09:42</small></td><td>ABC Foods</td><td><span class="produce">W</span> Wheat</td><td>200 kg</td><td><span class="status pending">Needs review</span></td><td><button class="row-btn review-btn">Review</button></td></tr>
+                  <tr><td><strong>#ORD-1023</strong><small>Today · 08:16</small></td><td>FreshMart</td><td><span class="produce rice">R</span> Rice</td><td>150 kg</td><td><span class="status accepted">Accepted</span></td><td><button class="row-btn">Open</button></td></tr>
+                  <tr><td><strong>#ORD-1022</strong><small>Yesterday · 17:24</small></td><td>GreenBuy</td><td><span class="produce potato">P</span> Potato</td><td>100 kg</td><td><span class="status transit">In transit</span></td><td><button class="row-btn">Track</button></td></tr>
+                  <tr><td><strong>#ORD-1021</strong><small>Yesterday · 13:08</small></td><td>North Grain Co.</td><td><span class="produce">W</span> Wheat</td><td>300 kg</td><td><span class="status delivered">Delivered</span></td><td><button class="row-btn">View</button></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="panel stock-panel">
+            <div class="panel-head">
+              <div><span class="eyebrow">INVENTORY</span><h2>Stock at a glance</h2></div>
+              <button class="text-btn" data-view-link="stock">Manage →</button>
+            </div>
+            <div class="stock-list">
+              <div class="stock-row"><div class="crop-icon wheat">W</div><div class="stock-info"><strong>Wheat</strong><small>BAT-1001 · Grade A</small></div><div class="stock-qty"><strong>500 kg</strong><span>₹28/kg</span></div></div>
+              <div class="stock-row"><div class="crop-icon rice">R</div><div class="stock-info"><strong>Rice</strong><small>BAT-1002 · Grade A</small></div><div class="stock-qty"><strong>300 kg</strong><span>₹42/kg</span></div></div>
+              <div class="stock-row"><div class="crop-icon potato">P</div><div class="stock-info"><strong>Potato</strong><small>BAT-1003 · Grade B</small></div><div class="stock-qty"><strong>200 kg</strong><span>₹24/kg</span></div></div>
+              <div class="stock-row low"><div class="crop-icon wheat">W</div><div class="stock-info"><strong>Mustard</strong><small>BAT-1004 · Grade A</small></div><div class="stock-qty"><strong>80 kg</strong><span class="warning">Low stock</span></div></div>
+            </div>
+          </section>
+        </div>
+
+        <div class="grid-bottom">
+          <section class="panel shipment-panel">
+            <div class="panel-head"><div><span class="eyebrow">SUPPLY MOVEMENT</span><h2>Active shipment</h2></div><button class="text-btn" data-view-link="shipments">All shipments →</button></div>
+            <div class="shipment-card">
+              <div class="shipment-top"><div><span class="shipment-id">SHP-2026-00124</span><h3>Wheat · 200 kg</h3></div><span class="status transit">In transit</span></div>
+              <div class="route">
+                <div class="route-point"><span class="pin farm">●</span><div><small>ORIGIN</small><strong>Rajesh Farm</strong><span>Sonipat, Haryana</span></div></div>
+                <div class="route-line"><span></span><i>▸</i><span></span></div>
+                <div class="route-point right"><span class="pin buyer">●</span><div><small>DESTINATION</small><strong>ABC Foods</strong><span>Okhla, Delhi</span></div></div>
+              </div>
+              <div class="shipment-foot"><span>Last update <strong>10:42 AM</strong></span><button class="primary-small" data-view-link="tracking">Track shipment</button></div>
+            </div>
+          </section>
+
+          <section class="panel timeline-panel">
+            <div class="panel-head"><div><span class="eyebrow">TODAY</span><h2>Supply activity</h2></div></div>
+            <div class="activity">
+              <div class="activity-item"><span class="activity-dot green"></span><div><strong>Shipment picked up</strong><p>SHP-00124 was collected by Amit Kumar.</p><small>10:12 AM</small></div></div>
+              <div class="activity-item"><span class="activity-dot amber"></span><div><strong>New order received</strong><p>ABC Foods requested 200 kg wheat.</p><small>09:42 AM</small></div></div>
+              <div class="activity-item"><span class="activity-dot blue"></span><div><strong>QR label generated</strong><p>SHP-00123 label is ready for pickup.</p><small>08:55 AM</small></div></div>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="content hidden-view" id="secondaryView">
+        <div class="subpage-head"><div><span class="eyebrow" id="subEyebrow">FARM OPERATIONS</span><h1 id="subTitle">My Stock</h1><p id="subText">Manage the produce available for verified buyers.</p></div><button class="primary-btn" id="subAction">＋ Add stock</button></div>
+        <div id="subContent"></div>
+      </section>
+    </main>
+  </div>
+
+  <div class="overlay" id="overlay"></div>
+
+  <div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal" role="dialog" aria-modal="true">
+      <button class="modal-close" id="modalClose">×</button>
+      <span class="eyebrow">NEW INVENTORY</span>
+      <h2>Add agricultural stock</h2>
+      <p>Publish a batch for verified buyers to discover.</p>
+      <form id="stockForm">
+        <div class="form-grid">
+          <label>Product name<input required name="product" placeholder="e.g. Wheat"></label>
+          <label>Category<select name="category"><option>Grain</option><option>Vegetable</option><option>Pulse</option><option>Oilseed</option></select></label>
+          <label>Quantity<input required type="number" name="quantity" placeholder="500"></label>
+          <label>Unit<select name="unit"><option>KG</option><option>Quintal</option><option>Ton</option></select></label>
+          <label>Price / unit<input required type="number" name="price" placeholder="28"></label>
+          <label>Grade<select name="grade"><option>A Grade</option><option>B Grade</option><option>C Grade</option></select></label>
+          <label class="full">Harvest date<input type="date" name="date" value="2026-09-25"></label>
+        </div>
+        <button class="primary-btn full-btn" type="submit">Publish stock</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"><span>✓</span><div><strong id="toastTitle">Saved</strong><small id="toastText">Your update was successful.</small></div></div>
+  <script src="script.js"></script>
+</body>
+</html>
