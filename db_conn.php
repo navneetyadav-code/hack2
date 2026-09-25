@@ -44,7 +44,9 @@ $domainName = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : 'localhost'
 // Since this file can be included from different directories, we construct the URI directly to actions/google.php
 // We find the path of db_conn.php relative to the document root
 $dbConnPath = str_replace('\\', '/', dirname(__FILE__));
-$docRoot = str_replace('\\', '/', $_SERVER['DOCUMENT_ROOT']);
-$projectSubfolder = str_replace($docRoot, '', $dbConnPath);
+$docRoot = str_replace('\\', '/', isset($_SERVER['DOCUMENT_ROOT']) ? $_SERVER['DOCUMENT_ROOT'] : '');
+// Use case-insensitive replace for Windows paths
+$projectSubfolder = str_ireplace($docRoot, '', $dbConnPath);
+if ($projectSubfolder === '/') $projectSubfolder = '';
 
 define('GOOGLE_REDIRECT_URI', $protocol . $domainName . $projectSubfolder . '/actions/google.php');
