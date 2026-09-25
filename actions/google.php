@@ -86,6 +86,11 @@ if (isset($_GET['code'])) {
     exit();
 }
 
+// Debug mode to help fix redirect_uri_mismatch
+if (isset($_GET['debug'])) {
+    die("<h3>Your Exact Google Redirect URI is:</h3><br><b>" . GOOGLE_REDIRECT_URI . "</b><br><br>Copy this exact URL and paste it into the 'Authorized redirect URIs' section in your Google Cloud Console.");
+}
+
 // Otherwise, initiate the Google OAuth flow
 $authUrl = "https://accounts.google.com/o/oauth2/v2/auth";
 $params = [
