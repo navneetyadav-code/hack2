@@ -1,8 +1,6 @@
 <?php 
 // FarmTrack Login Page
 session_start();
-
-// Redirect if already logged in
 if (isset($_SESSION['username']) && isset($_SESSION['id'])) {   
     header("Location: redirect.php");
     exit();

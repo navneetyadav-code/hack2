@@ -95,24 +95,30 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 
-async function searchProducts(query) {
-    if(query && query.length >= 3) {
+let currentPage = 1;
+
+async function searchProducts(query, page = 1) {
+    currentPage = page;
+    if(query && query.length >= 3 && page === 1) {
         let history = JSON.parse(localStorage.getItem("recentSearches") || "[]");
         history = [query, ...history.filter(q => q !== query)].slice(0, 5);
         localStorage.setItem("recentSearches", JSON.stringify(history));
     }
 
     try {
-        const res = await fetch(`../api/buyer_products.php?search=${encodeURIComponent(query)}`);
-        const products = await res.json();
+        const res = await fetch(`../api/buyer_products.php?search=${encodeURIComponent(query)}&page=${page}`);
+        const result = await res.json(); // contains {data, total, page, total_pages}
         
         const container = document.getElementById("searchResults");
-        if (products.length === 0) {
+        const pagination = document.getElementById("paginationControls");
+        
+        if (!result.data || result.data.length === 0) {
             container.innerHTML = '<p style="padding:20px; color:#6b7280;">No produce found matching your search.</p>';
+            pagination.innerHTML = '';
             return;
         }
 
-        container.innerHTML = products.map(p => `
+        container.innerHTML = result.data.map(p => `
             <div class="panel">
                 <div class="panel-header">
                     <h2>${p.product_name}</h2>
@@ -131,6 +137,18 @@ async function searchProducts(query) {
                 </div>
             </div>
         `).join('');
+
+        // Build pagination controls
+        if (result.total_pages > 1) {
+            let btns = '';
+            btns += `<button class="btn-secondary" ${page === 1 ? 'disabled' : ''} onclick="searchProducts('${query}', ${page - 1})">Prev</button>`;
+            btns += `<span style="padding: 0 10px;">Page ${page} of ${result.total_pages}</span>`;
+            btns += `<button class="btn-secondary" ${page === result.total_pages ? 'disabled' : ''} onclick="searchProducts('${query}', ${page + 1})">Next</button>`;
+            pagination.innerHTML = btns;
+        } else {
+            pagination.innerHTML = '';
+        }
+
     } catch (e) {
         console.error(e);
     }

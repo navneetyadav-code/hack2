@@ -125,6 +125,9 @@ if (!isset($_SESSION['id']) || $_SESSION['role'] !== 'buyer') {
             <div id="searchResults" class="data-grid">
                 <p style="padding:20px; color:#6b7280;">Start typing to see live results...</p>
             </div>
+            <div id="paginationControls" style="display:flex; justify-content:center; gap:10px; margin-top:20px; align-items:center;">
+              <!-- Pagination buttons injected here -->
+            </div>
           </div>
         </section>
 
