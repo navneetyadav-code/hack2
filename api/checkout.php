@@ -68,7 +68,7 @@ try {
     // Create orders
     foreach ($orders_by_farmer as $farmer_id => $order_data) {
         $total = $order_data['total_amount'];
-        $tracking = 'PL' . rand(10000000, 99999999) . 'DOM';
+        $tracking = 'FRM' . mt_rand(10000, 99999) . mt_rand(10000, 99999);
         $ins_order = mysqli_prepare($conn, "INSERT INTO orders (tracking_number, buyer_id, farmer_id, total_amount, payment_method, delivery_name, delivery_address, delivery_phone, delivery_email, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')");
         mysqli_stmt_bind_param($ins_order, "siidsssss", $tracking, $buyer_id, $farmer_id, $total, $payment_method, $data['name'], $data['address'], $data['phone'], $email);
         mysqli_stmt_execute($ins_order);
