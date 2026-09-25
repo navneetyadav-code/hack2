@@ -1,7 +1,6 @@
 import os
 
-app_js = r"""const loggedInUserName = document.body.dataset.userName || 'Farmer';
-const state = { inventory: [] };
+app_js = r"""const state = { inventory: [], orders: [] };
 
 document.addEventListener("DOMContentLoaded", () => {
     // Nav
@@ -14,7 +13,11 @@ document.addEventListener("DOMContentLoaded", () => {
             document.getElementById(pageId).classList.add("active");
             btn.classList.add("active");
             
+            const titles = { inventory: "Manage Inventory", shipments: "Shipments & Orders" };
+            document.getElementById("pageTitle").textContent = titles[pageId] || "Dashboard";
+            
             if (pageId === "inventory") loadInventory();
+            if (pageId === "shipments") loadOrders();
         });
     });
 
@@ -62,6 +65,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Initial Load
     loadInventory();
+    loadOrders();
 });
 
 function showToast(msg) {
@@ -95,14 +99,14 @@ function renderInventory() {
         <div class="panel">
             <div class="panel-header">
                 <h3>${item.name}</h3>
+                <span class="badge" style="background:#e5e7eb;color:#374151">₹${item.price_per_kg}/kg</span>
             </div>
             <div style="margin-top:10px;">
-                <p><strong>Quantity:</strong> ${item.quantity} kg</p>
-                <p><strong>Price:</strong> ₹${item.price_per_kg}/kg</p>
+                <p><strong>Available Quantity:</strong> ${item.quantity} kg</p>
                 <p><strong>Harvest Date:</strong> ${item.harvest_date}</p>
             </div>
             <div class="form-actions mt-4">
-                <button class="btn-secondary" style="color:red; border-color:red;" onclick="deleteInventory(${item.id})">Delete</button>
+                <button class="btn-secondary" style="color:#b91c1c; border-color:#b91c1c;" onclick="deleteInventory(${item.id})"><i class="fa-solid fa-trash"></i> Delete</button>
             </div>
         </div>
     `).join('');
@@ -119,6 +123,93 @@ async function deleteInventory(id) {
         }
     } catch (e) {
         console.error(e);
+    }
+}
+
+async function loadOrders() {
+    try {
+        const res = await fetch("../api/farmer_orders.php");
+        state.orders = await res.json();
+        renderOrders();
+        
+        const hasPending = state.orders.some(o => o.status === 'pending');
+        document.getElementById("pendingBadge").style.display = hasPending ? 'inline-block' : 'none';
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+function renderOrders() {
+    const container = document.getElementById("shipmentsList");
+    if (state.orders.length === 0) {
+        container.innerHTML = "<p style='padding:20px;'>No orders received yet.</p>";
+        return;
+    }
+
+    container.innerHTML = state.orders.map(o => {
+        return `
+        <div class="panel" style="margin-bottom: 20px;">
+            <div class="panel-header" style="border-bottom: 1px solid #e5e7eb; padding-bottom:10px; margin-bottom:10px;">
+                <h3>Order #${o.id} - ${o.tracking_number}</h3>
+                <span class="badge" style="${o.status==='pending' ? 'background:#d97706;color:white;' : (o.status==='rejected'?'background:#b91c1c;color:white;':'background:#16a34a;color:white;')}">${o.status.toUpperCase()}</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:20px;">
+                <div style="flex:1;">
+                    <p><strong>Buyer:</strong> ${o.buyer_name}</p>
+                    <p><strong>Phone:</strong> ${o.delivery_phone}</p>
+                    <p><strong>Address:</strong> ${o.delivery_address}</p>
+                    <p><strong>Total Amount:</strong> <span style="color:#16a34a; font-weight:bold;">₹${o.total_amount}</span></p>
+                </div>
+                <div style="flex:1; background:#f9fafb; padding:10px; border-radius:4px; border:1px solid #eee;">
+                    <strong>Items Requested:</strong>
+                    <ul style="margin-top:5px; padding-left:20px;">
+                        ${o.items.map(it => `<li>${it.quantity}kg of ${it.name} (₹${it.price}/kg)</li>`).join('')}
+                    </ul>
+                </div>
+            </div>
+            ${o.status === 'pending' ? `
+            <div class="form-actions mt-4" style="border-top:1px solid #eee; padding-top:15px;">
+                <button class="btn-primary" style="background:#16a34a;" onclick="updateOrderStatus(${o.id}, 'approved')"><i class="fa-solid fa-check"></i> Approve & Deduct Stock</button>
+                <button class="btn-secondary" style="color:#b91c1c; border-color:#b91c1c;" onclick="updateOrderStatus(${o.id}, 'rejected')"><i class="fa-solid fa-xmark"></i> Reject Order</button>
+            </div>
+            ` : `
+            ${['picked_up', 'transit', 'dispatched'].includes(o.status) ? `
+            <div class="form-actions mt-4" style="border-top:1px solid #eee; padding-top:15px;">
+                <select id="status_${o.id}" style="padding:8px; border-radius:4px; border:1px solid #ccc; margin-right:10px;">
+                    <option value="picked_up" ${o.status==='picked_up'?'selected':''}>Picked Up</option>
+                    <option value="transit" ${o.status==='transit'?'selected':''}>In Transit</option>
+                    <option value="dispatched" ${o.status==='dispatched'?'selected':''}>Dispatched</option>
+                    <option value="delivered" ${o.status==='delivered'?'selected':''}>Delivered</option>
+                </select>
+                <button class="btn-primary" onclick="updateOrderStatus(${o.id}, document.getElementById('status_${o.id}').value)">Update Status</button>
+            </div>
+            ` : ''}
+            `}
+        </div>
+        `;
+    }).join('');
+}
+
+async function updateOrderStatus(id, newStatus) {
+    if (newStatus === 'rejected' && !confirm("Are you sure you want to reject this order?")) return;
+    if (newStatus === 'approved' && !confirm("This will approve the order and automatically deduct the stock from your inventory. Proceed?")) return;
+
+    try {
+        const res = await fetch("../api/farmer_approve_order.php", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ order_id: id, status: newStatus })
+        });
+        const result = await res.json();
+        if (result.success) {
+            showToast("Order status updated!");
+            loadOrders();
+            loadInventory(); // refresh stock
+        } else {
+            alert("Error: " + result.error);
+        }
+    } catch (e) {
+        alert("Failed to update status.");
     }
 }
 """

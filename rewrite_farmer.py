@@ -1,4 +1,6 @@
-<?php
+import os
+
+farmer_php = r"""<?php
 session_start();
  if (!isset($_SESSION['username'], $_SESSION['id'], $_SESSION['role']) || $_SESSION['role'] !== 'farmer') {
    header('Location: ../index.php');
@@ -108,3 +110,8 @@ session_start();
   <script src="js/app.js"></script>
 </body>
 </html>
+"""
+with open('pages/farmer.php', 'w', encoding='utf-8') as f:
+    f.write(farmer_php)
+
+print("farmer.php written")

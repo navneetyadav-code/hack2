@@ -32,12 +32,13 @@ try {
         $prod_id = intval($item['product_id']);
         $req_qty = floatval($item['quantity']);
 
-        // Fetch product and lock row for update
-        $stmt = mysqli_prepare($conn, "SELECT farmer_id, quantity, price_per_kg FROM products WHERE id = ? FOR UPDATE");
+        // Fetch product
+        $stmt = mysqli_prepare($conn, "SELECT farmer_id, quantity, price_per_kg FROM products WHERE id = ?");
         mysqli_stmt_bind_param($stmt, "i", $prod_id);
         mysqli_stmt_execute($stmt);
         $res = mysqli_stmt_get_result($stmt);
         if ($row = mysqli_fetch_assoc($res)) {
+            // We just validate stock exists, but DO NOT DEDUCT it yet
             if ($req_qty > $row['quantity']) {
                 throw new Exception("Not enough quantity for product ID $prod_id");
             }
@@ -59,12 +60,6 @@ try {
                 'quantity' => $req_qty,
                 'price' => $price
             ];
-
-            // Deduct inventory
-            $new_qty = $row['quantity'] - $req_qty;
-            $upd_stmt = mysqli_prepare($conn, "UPDATE products SET quantity = ? WHERE id = ?");
-            mysqli_stmt_bind_param($upd_stmt, "di", $new_qty, $prod_id);
-            mysqli_stmt_execute($upd_stmt);
         } else {
             throw new Exception("Product ID $prod_id not found");
         }
@@ -73,8 +68,9 @@ try {
     // Create orders
     foreach ($orders_by_farmer as $farmer_id => $order_data) {
         $total = $order_data['total_amount'];
-        $ins_order = mysqli_prepare($conn, "INSERT INTO orders (buyer_id, farmer_id, total_amount, payment_method, delivery_name, delivery_address, delivery_phone, delivery_email, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')");
-        mysqli_stmt_bind_param($ins_order, "iidsssss", $buyer_id, $farmer_id, $total, $payment_method, $data['name'], $data['address'], $data['phone'], $email);
+        $tracking = 'PL' . rand(10000000, 99999999) . 'DOM';
+        $ins_order = mysqli_prepare($conn, "INSERT INTO orders (tracking_number, buyer_id, farmer_id, total_amount, payment_method, delivery_name, delivery_address, delivery_phone, delivery_email, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')");
+        mysqli_stmt_bind_param($ins_order, "siidsssss", $tracking, $buyer_id, $farmer_id, $total, $payment_method, $data['name'], $data['address'], $data['phone'], $email);
         mysqli_stmt_execute($ins_order);
         
         $order_id = mysqli_insert_id($conn);
