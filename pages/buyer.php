@@ -46,7 +46,10 @@ if (!isset($_SESSION['id']) || $_SESSION['role'] !== 'buyer') {
         <span>FarmTrack</span>
       </div>
       <nav class="nav-menu">
-        <button class="nav-btn active" data-page="findProduce">
+        <button class="nav-btn active" data-page="dashboard">
+          <i class="fa-solid fa-house"></i> Dashboard
+        </button>
+        <button class="nav-btn" data-page="findProduce">
           <i class="fa-solid fa-magnifying-glass"></i> Browse Produce
         </button>
         <button class="nav-btn" data-page="cartPage">
@@ -75,8 +78,40 @@ if (!isset($_SESSION['id']) || $_SESSION['role'] !== 'buyer') {
       </header>
 
       <div class="content-area">
+        
+        <!-- DASHBOARD -->
+        <section class="page active" id="dashboard">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-icon"><i class="fa-solid fa-box"></i></div>
+              <div class="stat-info"><p>Active Orders</p><h3 id="dashActiveOrders">0</h3></div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon"><i class="fa-solid fa-truck-fast"></i></div>
+              <div class="stat-info"><p>Delivered</p><h3 id="dashDeliveredOrders">0</h3></div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon"><i class="fa-solid fa-clock-rotate-left"></i></div>
+              <div class="stat-info"><p>Total Searches</p><h3 id="dashTotalSearches">0</h3></div>
+            </div>
+          </div>
+          <div class="split-view">
+            <div class="panel">
+              <div class="panel-header"><h2>Recent Searches</h2></div>
+              <div id="dashSearchList" class="compact-list" style="margin-top:15px;"></div>
+            </div>
+            <div class="panel">
+              <div class="panel-header">
+                <h2>Recent Orders</h2>
+                <button class="btn-text" onclick="document.querySelector('[data-page=\'orders\']').click()">View All</button>
+              </div>
+              <div id="dashOrderList" class="compact-list" style="margin-top:15px;"></div>
+            </div>
+          </div>
+        </section>
+
         <!-- BROWSE PRODUCE -->
-        <section class="page active" id="findProduce">
+        <section class="page" id="findProduce">
           <div class="panel">
             <div class="search-box">
               <input id="productSearch" type="text" placeholder="Type at least 3 characters to search (e.g. wheat)..." autocomplete="off">

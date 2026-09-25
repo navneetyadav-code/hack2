@@ -1,23 +1,35 @@
 const state = { inventory: [], orders: [] };
 
 document.addEventListener("DOMContentLoaded", () => {
-    // Nav
+    // Nav with Persistence
+    const switchTab = (pageId) => {
+        document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+        document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+        
+        const targetPage = document.getElementById(pageId) || document.getElementById("inventory");
+        if (!targetPage) return;
+        targetPage.classList.add("active");
+        
+        const btn = document.querySelector(`[data-page="${targetPage.id}"]`);
+        if (btn) btn.classList.add("active");
+        
+        const titles = { inventory: "Manage Inventory", shipments: "Shipments & Orders" };
+        document.getElementById("pageTitle").textContent = titles[targetPage.id] || "Dashboard";
+        
+        localStorage.setItem("farmerActiveTab", targetPage.id);
+        
+        if (targetPage.id === "inventory") loadInventory();
+        if (targetPage.id === "shipments") loadOrders();
+    };
+
     document.querySelectorAll(".nav-btn").forEach(btn => {
-        btn.addEventListener("click", () => {
-            document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
-            document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
-            
-            const pageId = btn.dataset.page;
-            document.getElementById(pageId).classList.add("active");
-            btn.classList.add("active");
-            
-            const titles = { inventory: "Manage Inventory", shipments: "Shipments & Orders" };
-            document.getElementById("pageTitle").textContent = titles[pageId] || "Dashboard";
-            
-            if (pageId === "inventory") loadInventory();
-            if (pageId === "shipments") loadOrders();
-        });
+        btn.addEventListener("click", () => switchTab(btn.dataset.page));
     });
+    
+    // Restore tab
+    const savedTab = localStorage.getItem("farmerActiveTab") || "inventory";
+    switchTab(savedTab);
+
 
     // Logout
     document.getElementById("logoutBtn").addEventListener("click", () => {
@@ -62,8 +74,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // Initial Load
-    loadInventory();
-    loadOrders();
+    
 });
 
 function showToast(msg) {
