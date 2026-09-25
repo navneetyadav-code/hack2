@@ -1,7 +1,10 @@
-<?php 
-   session_start();
-   include "../db_conn.php";
-   if (isset($_SESSION['username']) && isset($_SESSION['id']))    ?>
+<?php
+session_start();
+ if (!isset($_SESSION['username'], $_SESSION['id'], $_SESSION['role']) || $_SESSION['role'] !== 'farmer') {
+   header('Location: ../index.php');
+   exit;
+ }
+?>
 
 <!DOCTYPE html>
 <html lang="en">
@@ -10,205 +13,243 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FarmTrack - Farmer Dashboard</title>
   <link rel="stylesheet" href="css/style.css">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
-<body>
-  <div class="app">
+<body data-user-name="<?= htmlspecialchars($_SESSION['name'] ?? $_SESSION['username'], ENT_QUOTES, 'UTF-8') ?>">
+  <div class="app-container">
+    <!-- Sidebar -->
     <aside class="sidebar">
-      <div class="brand">🌾 FarmTrack</div>
-      <div class="role">Farmer Account</div>
-      <nav>
-        <button class="nav-btn active" data-page="dashboard">🏠 Dashboard</button>
-        <button class="nav-btn" data-page="stock">🌾 My Stock</button>
-        <button class="nav-btn" data-page="shipments">📦 My Shipments</button>
-        <button class="nav-btn" data-page="create">➕ Create Shipment</button>
-        <button class="nav-btn" data-page="track">📍 Track Shipment</button>
-        <button class="nav-btn" data-page="history">📜 History</button>
-        <button class="nav-btn" data-page="notifications">🔔 Notifications</button>
-        <button class="nav-btn" data-page="profile">👤 Profile</button>
+      <div class="brand">
+        <i class="fa-solid fa-leaf"></i>
+        <span>FarmTrack</span>
+      </div>
+      
+      <nav class="nav-menu">
+        <button class="nav-btn active" data-page="dashboard">
+          <i class="fa-solid fa-house"></i> Dashboard
+        </button>
+        <button class="nav-btn" data-page="inventory">
+          <i class="fa-solid fa-boxes-stacked"></i> Inventory
+        </button>
+        <button class="nav-btn" data-page="shipments">
+          <i class="fa-solid fa-truck-fast"></i> Shipments
+        </button>
+        <button class="nav-btn" data-page="profile">
+          <i class="fa-solid fa-user"></i> Profile
+        </button>
       </nav>
-      <button class="logout" id="logoutBtn">Logout</button>
+
+      <button type="button" class="logout-btn" id="logoutBtn">
+        <i class="fa-solid fa-right-from-bracket"></i> Logout
+      </button>
     </aside>
 
-    <main class="main">
-      <header class="topbar">
-        <div>
-          <h1 id="pageTitle">Farmer Dashboard</h1>
-          <p id="welcomeText">Welcome back, Farmer.</p>
+    <!-- Main Content -->
+    <main class="main-content">
+      <header class="top-header">
+        <div class="header-titles">
+          <h1 id="pageTitle">Overview</h1>
         </div>
-        <div class="user-chip">👨‍🌾 <span id="farmerNameTop">Farmer</span></div>
+        <div class="user-profile-sm">
+          <div class="avatar"><i class="fa-solid fa-user-tie"></i></div>
+          <span id="farmerNameTop"><?= htmlspecialchars($_SESSION['name'] ?? $_SESSION['username'], ENT_QUOTES, 'UTF-8') ?></span>
+        </div>
       </header>
 
-      <!-- DASHBOARD -->
-      <section class="page active" id="dashboard">
-        <div class="cards">
-          <div class="card"><span>🌾</span><h3 id="stockCount">0</h3><p>Stock Items</p></div>
-          <div class="card"><span>📦</span><h3 id="shipmentCount">0</h3><p>My Shipments</p></div>
-          <div class="card"><span>🚚</span><h3 id="transitCount">0</h3><p>In Transit</p></div>
-          <div class="card"><span>✅</span><h3 id="deliveredCount">0</h3><p>Delivered</p></div>
-        </div>
-
-        <div class="grid-2">
-          <div class="panel">
-            <div class="panel-head">
-              <h2>My Stock</h2>
-              <button class="small-btn" data-go="stock">Manage</button>
+      <div class="content-area">
+        
+        <!-- DASHBOARD PAGE -->
+        <section class="page active" id="dashboard">
+          <div class="stats-grid">
+            <div class="stat-card primary-stat">
+              <div class="stat-icon"><i class="fa-solid fa-wheat-awn"></i></div>
+              <div class="stat-info">
+                <p>Active Inventory</p>
+                <h3 id="dashInventoryCount">0</h3>
+              </div>
             </div>
-            <div id="dashboardStock" class="empty">No stock added yet.</div>
+            <div class="stat-card">
+              <div class="stat-icon"><i class="fa-solid fa-boxes-packing"></i></div>
+              <div class="stat-info">
+                <p>Pending Shipments</p>
+                <h3 id="dashPendingCount">0</h3>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon"><i class="fa-solid fa-route"></i></div>
+              <div class="stat-info">
+                <p>In Transit</p>
+                <h3 id="dashTransitCount">0</h3>
+              </div>
+            </div>
           </div>
-          <div class="panel">
-            <div class="panel-head">
-              <h2>Recent Shipments</h2>
-              <button class="small-btn" data-go="shipments">View All</button>
+
+          <div class="split-view">
+            <div class="panel">
+              <div class="panel-header">
+                <h2>Recent Inventory</h2>
+                <button class="btn-text" data-go="inventory">View All</button>
+              </div>
+              <div id="dashInventoryList" class="compact-list"></div>
             </div>
-            <div id="dashboardShipments" class="empty">No shipments yet.</div>
+            <div class="panel">
+              <div class="panel-header">
+                <h2>Active Shipments</h2>
+                <button class="btn-text" data-go="shipments">View All</button>
+              </div>
+              <div id="dashShipmentList" class="compact-list"></div>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <!-- STOCK -->
-      <section class="page" id="stock">
-        <div class="section-head">
-          <div>
-            <h2>My Stock</h2>
-            <p>Manage produce available on your farm.</p>
+        <!-- INVENTORY PAGE (Combined Stock) -->
+        <section class="page" id="inventory">
+          <div class="page-actions">
+            <h2>Manage Inventory</h2>
+            <button class="btn-primary" id="addInventoryBtn"><i class="fa-solid fa-plus"></i> Add Produce</button>
           </div>
-          <button class="primary" id="addStockBtn">+ Add Stock</button>
-        </div>
 
-        <div id="stockList" class="list"></div>
+          <div id="inventoryList" class="data-grid">
+            <!-- Inventory items loaded here -->
+          </div>
 
-        <div class="panel form-panel hidden" id="stockFormPanel">
-          <h2 id="stockFormTitle">Add Stock</h2>
-          <form id="stockForm">
-            <input type="hidden" id="stockId">
-            <div class="form-grid">
-              <label>Product
-                <input id="stockProduct" required placeholder="e.g. Wheat">
-              </label>
-              <label>Quantity
-                <input id="stockQuantity" type="number" min="0" required placeholder="500">
-              </label>
-              <label>Unit
-                <select id="stockUnit">
-                  <option>kg</option><option>quintal</option><option>ton</option>
-                </select>
-              </label>
-              <label>Available From
-                <input id="stockAvailableFrom" type="date">
-              </label>
-              <label>Expected Delivery Date
-                <input id="stockDeliveryDate" type="date">
-              </label>
-              <label>Notes
-                <input id="stockNotes" placeholder="Quality, grade, etc.">
-              </label>
+          <!-- Add/Edit Modal -->
+          <div class="modal hidden" id="inventoryModal">
+            <div class="modal-content panel">
+              <div class="modal-header">
+                <h2 id="inventoryFormTitle">Add Produce</h2>
+                <button class="close-modal" id="closeInventoryModal"><i class="fa-solid fa-xmark"></i></button>
+              </div>
+              <form id="inventoryForm" class="standard-form">
+                <input type="hidden" id="invId">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Produce Name</label>
+                    <input id="invName" required placeholder="e.g., Basmati Rice">
+                  </div>
+                </div>
+                <div class="form-row two-col">
+                  <div class="form-group">
+                    <label>Quantity</label>
+                    <input id="invQty" type="number" min="0" required placeholder="0">
+                  </div>
+                  <div class="form-group">
+                    <label>Unit</label>
+                    <select id="invUnit">
+                      <option value="kg">Kilograms (kg)</option>
+                      <option value="quintal">Quintals</option>
+                      <option value="ton">Tons</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Available Date</label>
+                    <input id="invDate" type="date" required>
+                  </div>
+                </div>
+                <div class="form-actions">
+                  <button type="button" class="btn-secondary close-modal">Cancel</button>
+                  <button type="submit" class="btn-primary">Save Inventory</button>
+                </div>
+              </form>
             </div>
-            <div class="form-actions">
-              <button type="submit" class="primary">Save Stock</button>
-              <button type="button" class="secondary" id="cancelStockBtn">Cancel</button>
+          </div>
+        </section>
+
+        <!-- SHIPMENTS PAGE (Combined Create & Track) -->
+        <section class="page" id="shipments">
+          <div class="page-actions">
+            <h2>Shipments</h2>
+            <button class="btn-primary" id="createShipmentBtn"><i class="fa-solid fa-truck-arrow-right"></i> New Shipment</button>
+          </div>
+
+          <div class="status-tabs">
+            <button class="tab-btn active" data-filter="all">All</button>
+            <button class="tab-btn" data-filter="pending">Pending</button>
+            <button class="tab-btn" data-filter="transit">In Transit</button>
+            <button class="tab-btn" data-filter="delivered">Delivered</button>
+          </div>
+
+          <div id="shipmentListFull" class="list-container">
+            <!-- Shipments loaded here -->
+          </div>
+
+          <!-- Create Shipment Modal -->
+          <div class="modal hidden" id="shipmentModal">
+            <div class="modal-content panel">
+              <div class="modal-header">
+                <h2>Create Shipment Request</h2>
+                <button class="close-modal" id="closeShipmentModal"><i class="fa-solid fa-xmark"></i></button>
+              </div>
+              <form id="shipmentForm" class="standard-form">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Select Produce from Inventory</label>
+                    <select id="shipInvSelect" required></select>
+                  </div>
+                </div>
+                <div class="form-row two-col">
+                  <div class="form-group">
+                    <label>Quantity to Ship</label>
+                    <input id="shipQty" type="number" min="1" required>
+                  </div>
+                  <div class="form-group">
+                    <label>Target Delivery Date</label>
+                    <input id="shipDate" type="date" required>
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Destination / Buyer Note</label>
+                    <input id="shipDest" placeholder="City or Buyer details" required>
+                  </div>
+                </div>
+                <div class="form-actions">
+                  <button type="button" class="btn-secondary close-modal">Cancel</button>
+                  <button type="submit" class="btn-primary">Request Shipment</button>
+                </div>
+              </form>
             </div>
-          </form>
-        </div>
-      </section>
+          </div>
+        </section>
 
-      <!-- SHIPMENTS -->
-      <section class="page" id="shipments">
-        <div class="section-head">
-          <div><h2>My Shipments</h2><p>Only real shipments returned by the backend will appear here.</p></div>
-          <button class="primary" data-go="create">+ Create Shipment</button>
-        </div>
-        <div id="shipmentList" class="list"></div>
-      </section>
+        <!-- PROFILE PAGE -->
+        <section class="page" id="profile">
+          <div class="panel max-w-md mx-auto">
+            <h2>Farm Profile</h2>
+            <form id="profileForm" class="standard-form mt-4">
+              <div class="form-group">
+                <label>Farmer Name</label>
+                <input id="profName" required>
+              </div>
+              <div class="form-row two-col">
+                <div class="form-group">
+                  <label>Contact Number</label>
+                  <input id="profPhone" type="tel">
+                </div>
+                <div class="form-group">
+                  <label>Farm Size (Acres)</label>
+                  <input id="profSize" type="number" min="0" step="0.1">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Farm Location (Village/City)</label>
+                <input id="profLoc">
+              </div>
+              <div class="form-actions mt-4">
+                <button type="submit" class="btn-primary w-full">Update Profile</button>
+              </div>
+            </form>
+          </div>
+        </section>
 
-      <!-- CREATE -->
-      <section class="page" id="create">
-        <div class="panel form-panel">
-          <h2>Create Shipment Request</h2>
-          <p class="muted">This creates a shipment request for the backend. Buyer and transporter information should be loaded from the backend later.</p>
-
-          <form id="shipmentForm">
-            <div class="form-grid">
-              <label>Stock Item
-                <select id="shipmentStock" required></select>
-              </label>
-              <label>Quantity
-                <input id="shipmentQuantity" type="number" min="1" required>
-              </label>
-              <label>Buyer
-                <select id="shipmentBuyer">
-                  <option value="">Select buyer from backend</option>
-                </select>
-              </label>
-              <label>Expected Delivery Date
-                <input id="shipmentDeliveryDate" type="date" required>
-              </label>
-              <label>Pickup Location
-                <input id="pickupLocation" placeholder="Farm / village / collection point">
-              </label>
-              <label>Delivery Location
-                <input id="deliveryLocation" placeholder="Buyer destination">
-              </label>
-            </div>
-            <label>Additional Notes
-              <textarea id="shipmentNotes" rows="4" placeholder="Any details for buyer/transporter..."></textarea>
-            </label>
-            <div class="form-actions">
-              <button type="submit" class="primary">Create Shipment Request</button>
-              <button type="reset" class="secondary">Clear</button>
-            </div>
-          </form>
-        </div>
-        <div class="info-box">
-          <strong>Backend-ready:</strong> This page does not create fake orders. On backend integration,
-          submit the form to something like <code>POST /api/shipments</code> and use the returned shipment ID.
-        </div>
-      </section>
-
-      <!-- TRACK -->
-      <section class="page" id="track">
-        <div class="section-head">
-          <div><h2>Track Shipment</h2><p>Enter a real shipment ID returned by the backend.</p></div>
-        </div>
-        <div class="track-search">
-          <input id="trackId" placeholder="e.g. SHP-2026-001">
-          <button class="primary" id="trackBtn">Track</button>
-        </div>
-        <div id="trackingResult" class="panel empty">No shipment selected.</div>
-      </section>
-
-      <!-- HISTORY -->
-      <section class="page" id="history">
-        <div class="section-head"><div><h2>Shipment History</h2><p>Historical events will be loaded from the backend.</p></div></div>
-        <div id="historyList" class="list"></div>
-      </section>
-
-      <!-- NOTIFICATIONS -->
-      <section class="page" id="notifications">
-        <div class="section-head"><div><h2>Notifications</h2><p>Only notifications received from the backend will appear here.</p></div></div>
-        <div id="notificationList" class="list"></div>
-      </section>
-
-      <!-- PROFILE -->
-      <section class="page" id="profile">
-        <div class="panel form-panel">
-          <h2>Farmer Profile</h2>
-          <form id="profileForm">
-            <div class="form-grid">
-              <label>Full Name<input id="profileName" placeholder="Farmer name"></label>
-              <label>Phone<input id="profilePhone" placeholder="Phone number"></label>
-              <label>Email<input id="profileEmail" type="email" placeholder="Email"></label>
-              <label>Village / Farm Location<input id="profileLocation" placeholder="Village"></label>
-              <label>Farm Size<input id="profileFarmSize" placeholder="e.g. 5 acres"></label>
-              <label>Main Crops<input id="profileCrops" placeholder="Wheat, Rice"></label>
-            </div>
-            <button class="primary" type="submit">Save Profile</button>
-          </form>
-        </div>
-      </section>
+      </div>
     </main>
   </div>
 
-  <div id="toast" class="toast"></div>
+  <div id="toast" class="toast">Action completed successfully.</div>
+  
   <script src="js/app.js"></script>
 </body>
 </html>

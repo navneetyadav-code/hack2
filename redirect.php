@@ -7,16 +7,20 @@
          //admin
       	if ($_SESSION['role'] == 'farmer'){
 			header("Location: pages/farmer.php");
+			exit();
       	 }
 		 //teacher
 		 else if ($_SESSION['role'] == 'transporter'){ 
 			header("Location: pages/transporter.php");
+			exit();
       	} 
 		//student
 		  else if ($_SESSION['role'] == 'buyer'){ 
-			header("Location: pages/buyer.php");	
+			header("Location: pages/buyer.php");
+			exit();
 		}
  }
 else{
-	header("Location:login-index.php");
+	header("Location:index.php");
+	exit();
 } ?>

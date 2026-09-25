@@ -1,433 +1,323 @@
-/*
-  FARMTRACK FRONTEND
-  ------------------
-  This file currently uses localStorage only for UI testing.
+/**
+ * FarmTrack - Streamlined Farmer Dashboard Logic
+ * Uses localStorage for demonstration.
+ */
 
-  BACKEND INTEGRATION:
-  Replace the functions marked "BACKEND TODO" with fetch() calls.
-  Do NOT hard-code real shipments, buyers, or transporters here.
-
-  Suggested API:
-  GET  /api/me
-  GET  /api/farmer/stock
-  POST /api/farmer/stock
-  PUT  /api/farmer/stock/:id
-  DELETE /api/farmer/stock/:id
-  GET  /api/farmer/shipments
-  POST /api/shipments
-  GET  /api/shipments/:id
-  GET  /api/shipments/:id/history
-  GET  /api/farmer/notifications
-  GET  /api/buyers
-*/
+// --- STATE MANAGEMENT ---
+const loggedInUserName = document.body.dataset.userName || 'Farmer';
+const savedProfile = JSON.parse(localStorage.getItem('ft_profile')) || {};
 
 const state = {
-  farmer: JSON.parse(localStorage.getItem("farmer_profile") || "null") || {
-    id: null, name: "Farmer", phone: "", email: "", location: "", farmSize: "", crops: ""
-  },
-  stock: JSON.parse(localStorage.getItem("farmer_stock") || "[]"),
-  shipments: JSON.parse(localStorage.getItem("farmer_shipments") || "[]"),
-  notifications: JSON.parse(localStorage.getItem("farmer_notifications") || "[]")
+    profile: { ...savedProfile, name: loggedInUserName },
+    inventory: JSON.parse(localStorage.getItem('ft_inventory')) || [],
+    shipments: JSON.parse(localStorage.getItem('ft_shipments')) || [],
+    currentFilter: 'all'
 };
 
-function saveLocal() {
-  localStorage.setItem("farmer_profile", JSON.stringify(state.farmer));
-  localStorage.setItem("farmer_stock", JSON.stringify(state.stock));
-  localStorage.setItem("farmer_shipments", JSON.stringify(state.shipments));
-  localStorage.setItem("farmer_notifications", JSON.stringify(state.notifications));
+function saveState() {
+    localStorage.setItem('ft_profile', JSON.stringify(state.profile));
+    localStorage.setItem('ft_inventory', JSON.stringify(state.inventory));
+    localStorage.setItem('ft_shipments', JSON.stringify(state.shipments));
 }
 
-function $(id) { return document.getElementById(id); }
+// --- UTILS ---
+const el = id => document.getElementById(id);
+const generateId = prefix => prefix + '-' + Math.random().toString(36).substr(2, 6).toUpperCase();
+const formatDate = dateStr => new Date(dateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 
-function showToast(message) {
-  const toast = $("toast");
-  toast.textContent = message;
-  toast.style.display = "block";
-  setTimeout(() => toast.style.display = "none", 2500);
+function showToast(msg) {
+    const toast = el('toast');
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 3000);
 }
 
-/* ---------- NAVIGATION ---------- */
-const pageTitles = {
-  dashboard: "Farmer Dashboard",
-  stock: "My Stock",
-  shipments: "My Shipments",
-  create: "Create Shipment",
-  track: "Track Shipment",
-  history: "Shipment History",
-  notifications: "Notifications",
-  profile: "My Profile"
-};
+// --- NAVIGATION ---
+document.querySelectorAll('.nav-btn, [data-go]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        const pageId = e.currentTarget.dataset.page || e.currentTarget.dataset.go;
+        
+        // Update nav UI
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        const navBtn = document.querySelector(`.nav-btn[data-page="${pageId}"]`);
+        if(navBtn) navBtn.classList.add('active');
 
-function openPage(page) {
-  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
-  document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+        // Update page UI
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        el(pageId).classList.add('active');
 
-  const target = $(page);
-  if (target) target.classList.add("active");
+        // Update Title
+        const titles = { dashboard: 'Overview', inventory: 'Manage Inventory', shipments: 'Shipment Tracking', profile: 'Farm Profile' };
+        el('pageTitle').textContent = titles[pageId] || 'Dashboard';
 
-  const nav = document.querySelector(`[data-page="${page}"]`);
-  if (nav) nav.classList.add("active");
-
-  $("pageTitle").textContent = pageTitles[page] || "Farmer Dashboard";
-  renderAll();
-
-  if (page === "create") populateShipmentStock();
-}
-
-document.querySelectorAll(".nav-btn").forEach(btn => {
-  btn.addEventListener("click", () => openPage(btn.dataset.page));
+        renderCurrentPage(pageId);
+    });
 });
 
-document.querySelectorAll("[data-go]").forEach(btn => {
-  btn.addEventListener("click", () => openPage(btn.dataset.go));
-});
+// --- RENDERERS ---
 
-/* ---------- DASHBOARD ---------- */
+function renderCurrentPage(pageId) {
+    if (pageId === 'dashboard') renderDashboard();
+    if (pageId === 'inventory') renderInventory();
+    if (pageId === 'shipments') renderShipments();
+    if (pageId === 'profile') renderProfile();
+}
+
 function renderDashboard() {
-  $("farmerNameTop").textContent = state.farmer.name || "Farmer";
-  $("welcomeText").textContent = `Welcome back, ${state.farmer.name || "Farmer"}.`;
+    el('farmerNameTop').textContent = loggedInUserName;
+    
+    // Stats
+    el('dashInventoryCount').textContent = state.inventory.reduce((sum, item) => sum + Number(item.qty), 0) + ' units';
+    el('dashPendingCount').textContent = state.shipments.filter(s => s.status === 'pending').length;
+    el('dashTransitCount').textContent = state.shipments.filter(s => s.status === 'transit').length;
 
-  $("stockCount").textContent = state.stock.length;
-  $("shipmentCount").textContent = state.shipments.length;
-  $("transitCount").textContent =
-    state.shipments.filter(s => ["IN_TRANSIT", "PICKED_UP"].includes(s.status)).length;
-  $("deliveredCount").textContent =
-    state.shipments.filter(s => s.status === "DELIVERED").length;
+    // Mini Inventory List
+    const invList = el('dashInventoryList');
+    if (state.inventory.length === 0) {
+        invList.innerHTML = `<div class="empty-state">No produce added yet.</div>`;
+    } else {
+        invList.innerHTML = state.inventory.slice(0, 4).map(item => `
+            <div class="list-item">
+                <div class="item-main">
+                    <h4>${item.name}</h4>
+                    <p class="item-sub">Available: ${formatDate(item.date)}</p>
+                </div>
+                <div class="item-qty"><strong>${item.qty}</strong> <small>${item.unit}</small></div>
+            </div>
+        `).join('');
+    }
 
-  const stockBox = $("dashboardStock");
-  if (!state.stock.length) {
-    stockBox.innerHTML = "No stock added yet.";
-  } else {
-    stockBox.innerHTML = state.stock.slice(0, 4).map(s => `
-      <div class="list-item">
-        <h3>${escapeHtml(s.product)}</h3>
-        <div class="meta">${s.quantity} ${escapeHtml(s.unit)} • Delivery: ${s.deliveryDate || "Not set"}</div>
-      </div>
-    `).join("");
-  }
-
-  const shipBox = $("dashboardShipments");
-  if (!state.shipments.length) {
-    shipBox.innerHTML = "No shipments yet.";
-  } else {
-    shipBox.innerHTML = state.shipments.slice(0, 4).map(shipmentCard).join("");
-  }
+    // Mini Shipments List
+    const shipList = el('dashShipmentList');
+    if (state.shipments.length === 0) {
+        shipList.innerHTML = `<div class="empty-state">No active shipments.</div>`;
+    } else {
+        shipList.innerHTML = state.shipments.slice(0, 4).map(ship => `
+            <div class="list-item">
+                <div class="item-main">
+                    <h4>${ship.itemName}</h4>
+                    <p class="item-sub">To: ${ship.destination}</p>
+                </div>
+                <span class="badge ${ship.status}">${ship.status}</span>
+            </div>
+        `).join('');
+    }
 }
 
-/* ---------- STOCK ---------- */
-function renderStock() {
-  const box = $("stockList");
-
-  if (!state.stock.length) {
-    box.innerHTML = `<div class="empty">No stock added yet. Click "+ Add Stock" to add your produce.</div>`;
-    return;
-  }
-
-  box.innerHTML = state.stock.map(s => `
-    <div class="list-item">
-      <div class="panel-head">
-        <div>
-          <h3>${escapeHtml(s.product)}</h3>
-          <div class="meta">Quantity: ${s.quantity} ${escapeHtml(s.unit)}</div>
-          <div class="meta">Available: ${s.availableFrom || "Not set"} | Delivery: ${s.deliveryDate || "Not set"}</div>
-          ${s.notes ? `<div class="meta">Notes: ${escapeHtml(s.notes)}</div>` : ""}
+// --- INVENTORY LOGIC ---
+function renderInventory() {
+    const list = el('inventoryList');
+    if (state.inventory.length === 0) {
+        list.innerHTML = `<div class="empty-state w-full col-span-full"><i class="fa-solid fa-seedling"></i><p>Your inventory is empty. Add produce to start selling.</p></div>`;
+        list.style.display = 'block';
+        return;
+    }
+    
+    list.style.display = 'grid';
+    list.innerHTML = state.inventory.map(item => `
+        <div class="inventory-card">
+            <div class="inv-header">
+                <h3>${item.name}</h3>
+                <span class="badge default">In Stock</span>
+            </div>
+            <div class="inv-qty">${item.qty} <span>${item.unit}</span></div>
+            <div class="inv-meta">
+                <span><i class="fa-regular fa-calendar"></i> Available: ${formatDate(item.date)}</span>
+            </div>
+            <div class="inv-actions">
+                <button class="btn-icon" onclick="editInventory('${item.id}')" title="Edit"><i class="fa-solid fa-pen"></i></button>
+                <button class="btn-icon delete" onclick="deleteInventory('${item.id}')" title="Delete"><i class="fa-solid fa-trash"></i></button>
+            </div>
         </div>
-        <span class="status">${s.quantity > 0 ? "Available" : "Out of stock"}</span>
-      </div>
-      <div class="stock-actions">
-        <button class="small-btn" onclick="editStock('${s.id}')">Edit</button>
-        <button class="small-btn" onclick="deleteStock('${s.id}')">Delete</button>
-      </div>
-    </div>
-  `).join("");
+    `).join('');
 }
 
-$("addStockBtn").addEventListener("click", () => {
-  $("stockFormTitle").textContent = "Add Stock";
-  $("stockForm").reset();
-  $("stockId").value = "";
-  $("stockFormPanel").classList.remove("hidden");
+el('addInventoryBtn').addEventListener('click', () => {
+    el('inventoryForm').reset();
+    el('invId').value = '';
+    el('inventoryFormTitle').textContent = 'Add Produce';
+    el('inventoryModal').classList.remove('hidden');
 });
 
-$("cancelStockBtn").addEventListener("click", () => {
-  $("stockFormPanel").classList.add("hidden");
+document.querySelectorAll('#closeInventoryModal, #inventoryModal .btn-secondary').forEach(btn => {
+    btn.addEventListener('click', () => el('inventoryModal').classList.add('hidden'));
 });
 
-$("stockForm").addEventListener("submit", e => {
-  e.preventDefault();
+el('inventoryForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const id = el('invId').value || generateId('INV');
+    const item = {
+        id: id,
+        name: el('invName').value,
+        qty: el('invQty').value,
+        unit: el('invUnit').value,
+        date: el('invDate').value
+    };
 
-  const id = $("stockId").value || crypto.randomUUID();
+    const existingIdx = state.inventory.findIndex(i => i.id === id);
+    if (existingIdx > -1) state.inventory[existingIdx] = item;
+    else state.inventory.push(item);
 
-  const item = {
-    id,
-    farmerId: state.farmer.id,
-    product: $("stockProduct").value.trim(),
-    quantity: Number($("stockQuantity").value),
-    unit: $("stockUnit").value,
-    availableFrom: $("stockAvailableFrom").value,
-    deliveryDate: $("stockDeliveryDate").value,
-    notes: $("stockNotes").value.trim()
-  };
-
-  const existing = state.stock.findIndex(s => s.id === id);
-  if (existing >= 0) state.stock[existing] = item;
-  else state.stock.push(item);
-
-  saveLocal();
-  $("stockFormPanel").classList.add("hidden");
-  renderAll();
-  showToast("Stock saved.");
+    saveState();
+    el('inventoryModal').classList.add('hidden');
+    renderInventory();
+    showToast('Inventory updated successfully');
 });
 
-function editStock(id) {
-  const s = state.stock.find(x => x.id === id);
-  if (!s) return;
-
-  $("stockFormTitle").textContent = "Edit Stock";
-  $("stockId").value = s.id;
-  $("stockProduct").value = s.product;
-  $("stockQuantity").value = s.quantity;
-  $("stockUnit").value = s.unit;
-  $("stockAvailableFrom").value = s.availableFrom || "";
-  $("stockDeliveryDate").value = s.deliveryDate || "";
-  $("stockNotes").value = s.notes || "";
-  $("stockFormPanel").classList.remove("hidden");
+window.editInventory = (id) => {
+    const item = state.inventory.find(i => i.id === id);
+    if(!item) return;
+    el('invId').value = item.id;
+    el('invName').value = item.name;
+    el('invQty').value = item.qty;
+    el('invUnit').value = item.unit;
+    el('invDate').value = item.date;
+    el('inventoryFormTitle').textContent = 'Edit Produce';
+    el('inventoryModal').classList.remove('hidden');
 }
 
-function deleteStock(id) {
-  if (!confirm("Delete this stock item?")) return;
-  state.stock = state.stock.filter(s => s.id !== id);
-  saveLocal();
-  renderAll();
-  showToast("Stock deleted.");
+window.deleteInventory = (id) => {
+    if(confirm('Remove this item from inventory?')) {
+        state.inventory = state.inventory.filter(i => i.id !== id);
+        saveState();
+        renderInventory();
+        showToast('Item removed');
+    }
 }
 
-/* ---------- SHIPMENTS ---------- */
-function shipmentCard(s) {
-  return `
-    <div class="list-item">
-      <div class="panel-head">
-        <div>
-          <h3>${escapeHtml(s.id || "Shipment")}</h3>
-          <div class="meta">${escapeHtml(s.product || "Product")} • ${s.quantity || 0} ${escapeHtml(s.unit || "kg")}</div>
-          <div class="meta">Buyer: ${escapeHtml(s.buyerName || "Not assigned")}</div>
-          <div class="meta">Expected delivery: ${s.deliveryDate || "Not set"}</div>
-        </div>
-        <span class="status">${formatStatus(s.status || "CREATED")}</span>
-      </div>
-      <div class="stock-actions">
-        <button class="small-btn" onclick="trackShipment('${s.id}')">Track</button>
-      </div>
-    </div>
-  `;
-}
-
+// --- SHIPMENT LOGIC ---
 function renderShipments() {
-  const box = $("shipmentList");
-  box.innerHTML = state.shipments.length
-    ? state.shipments.map(shipmentCard).join("")
-    : `<div class="empty">No shipments yet. Shipments created by the connected backend will appear here.</div>`;
-}
+    const list = el('shipmentListFull');
+    let filtered = state.shipments;
+    
+    if(state.currentFilter !== 'all') {
+        filtered = state.shipments.filter(s => s.status === state.currentFilter);
+    }
 
-function populateShipmentStock() {
-  const select = $("shipmentStock");
-  select.innerHTML = state.stock.length
-    ? `<option value="">Select stock</option>` +
-      state.stock.map(s => `<option value="${s.id}">${escapeHtml(s.product)} - ${s.quantity} ${escapeHtml(s.unit)}</option>`).join("")
-    : `<option value="">No stock available</option>`;
-}
+    if (filtered.length === 0) {
+        list.innerHTML = `<div class="empty-state"><i class="fa-solid fa-box-open"></i><p>No shipments found in this category.</p></div>`;
+        return;
+    }
 
-/*
-  BACKEND TODO:
-  Load real buyers here:
-  const response = await fetch('/api/buyers');
-  const buyers = await response.json();
-  Populate #shipmentBuyer.
-*/
-function populateBuyersPlaceholder() {
-  // Intentionally empty. No fake buyer data.
-}
-
-$("shipmentForm").addEventListener("submit", e => {
-  e.preventDefault();
-
-  const stock = state.stock.find(s => s.id === $("shipmentStock").value);
-  if (!stock) {
-    showToast("Please select a valid stock item.");
-    return;
-  }
-
-  /*
-    FRONTEND DEMO ONLY:
-    This local object exists so you can test the form.
-    DELETE/REPLACE this section when Flask backend is connected.
-    POST the form data to /api/shipments instead.
-  */
-  const shipment = {
-    id: "LOCAL-" + Date.now(),
-    farmerId: state.farmer.id,
-    stockId: stock.id,
-    product: stock.product,
-    quantity: Number($("shipmentQuantity").value),
-    unit: stock.unit,
-    buyerId: $("shipmentBuyer").value || null,
-    buyerName: null,
-    deliveryDate: $("shipmentDeliveryDate").value,
-    pickupLocation: $("pickupLocation").value,
-    deliveryLocation: $("deliveryLocation").value,
-    notes: $("shipmentNotes").value,
-    status: "CREATED",
-    transporterId: null,
-    createdAt: new Date().toISOString()
-  };
-
-  state.shipments.push(shipment);
-  saveLocal();
-  $("shipmentForm").reset();
-  showToast("Shipment request saved locally. Connect the backend to make it real.");
-  openPage("shipments");
-});
-
-/* ---------- TRACKING ---------- */
-function trackShipment(id) {
-  openPage("track");
-  $("trackId").value = id;
-  loadTracking(id);
-}
-
-$("trackBtn").addEventListener("click", () => {
-  const id = $("trackId").value.trim();
-  if (!id) return showToast("Enter a shipment ID.");
-  loadTracking(id);
-});
-
-/*
-  BACKEND TODO:
-  GET /api/shipments/:id
-  GET /api/shipments/:id/history
-*/
-function loadTracking(id) {
-  const shipment = state.shipments.find(s => s.id === id);
-
-  if (!shipment) {
-    $("trackingResult").innerHTML = `
-      <div class="empty">
-        Shipment not found in current frontend data.<br>
-        When backend is connected, this area will load the real shipment by ID.
-      </div>`;
-    return;
-  }
-
-  $("trackingResult").classList.remove("empty");
-  $("trackingResult").innerHTML = `
-    <h2>${escapeHtml(shipment.id)}</h2>
-    <p><strong>${escapeHtml(shipment.product)}</strong> — ${shipment.quantity} ${escapeHtml(shipment.unit)}</p>
-    <p>Status: <span class="status">${formatStatus(shipment.status)}</span></p>
-    <div class="timeline">
-      <div class="timeline-item">
-        <strong>Shipment Created</strong>
-        <div class="meta">${formatDate(shipment.createdAt)}</div>
-      </div>
-      <div class="timeline-item">
-        <strong>Current Status: ${formatStatus(shipment.status)}</strong>
-        <div class="meta">Transporter: ${shipment.transporterId || "Not assigned"}</div>
-      </div>
-    </div>
-  `;
-}
-
-/* ---------- HISTORY ---------- */
-function renderHistory() {
-  $("historyList").innerHTML = state.shipments.length
-    ? state.shipments.map(s => `
-        <div class="list-item">
-          <h3>${escapeHtml(s.id)}</h3>
-          <div class="meta">${escapeHtml(s.product)} • ${s.quantity} ${escapeHtml(s.unit)}</div>
-          <div class="meta">Created: ${formatDate(s.createdAt)}</div>
-          <span class="status">${formatStatus(s.status)}</span>
+    list.innerHTML = filtered.map(ship => `
+        <div class="shipment-card">
+            <div class="shipment-info">
+                <span class="shipment-id">ID: ${ship.id}</span>
+                <h3 class="shipment-title">${ship.itemName} (${ship.qty} ${ship.unit})</h3>
+                <div class="shipment-details">
+                    <span><i class="fa-solid fa-location-dot"></i> ${ship.destination}</span>
+                    <span><i class="fa-regular fa-calendar-check"></i> Target: ${formatDate(ship.date)}</span>
+                </div>
+            </div>
+            <div class="shipment-status-area">
+                <span class="badge ${ship.status}">${ship.status}</span>
+                ${ship.status === 'pending' ? `<button class="btn-text" style="color:#EF4444" onclick="cancelShipment('${ship.id}')">Cancel</button>` : ''}
+            </div>
         </div>
-      `).join("")
-    : `<div class="empty">No shipment history yet.</div>`;
+    `).join('');
 }
 
-/* ---------- NOTIFICATIONS ---------- */
-function renderNotifications() {
-  $("notificationList").innerHTML = state.notifications.length
-    ? state.notifications.map(n => `
-      <div class="list-item">
-        <h3>${escapeHtml(n.title)}</h3>
-        <div class="meta">${escapeHtml(n.message)}</div>
-        <div class="meta">${formatDate(n.createdAt)}</div>
-      </div>
-    `).join("")
-    : `<div class="empty">No notifications yet.</div>`;
+// Tab handling
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+        state.currentFilter = e.currentTarget.dataset.filter;
+        renderShipments();
+    });
+});
+
+el('createShipmentBtn').addEventListener('click', () => {
+    if (state.inventory.length === 0) {
+        alert("Please add items to your inventory first.");
+        return;
+    }
+    const select = el('shipInvSelect');
+    select.innerHTML = state.inventory.map(i => `<option value="${i.id}">${i.name} (Max: ${i.qty} ${i.unit})</option>`).join('');
+    
+    el('shipmentForm').reset();
+    el('shipmentModal').classList.remove('hidden');
+});
+
+document.querySelectorAll('#closeShipmentModal, #shipmentModal .btn-secondary').forEach(btn => {
+    btn.addEventListener('click', () => el('shipmentModal').classList.add('hidden'));
+});
+
+el('shipmentForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const invId = el('shipInvSelect').value;
+    const invItem = state.inventory.find(i => i.id === invId);
+    const reqQty = Number(el('shipQty').value);
+
+    if(reqQty > invItem.qty) {
+        alert(`Requested quantity exceeds available stock (${invItem.qty} ${invItem.unit})`);
+        return;
+    }
+
+    const ship = {
+        id: generateId('SHP'),
+        invId: invId,
+        itemName: invItem.name,
+        qty: reqQty,
+        unit: invItem.unit,
+        date: el('shipDate').value,
+        destination: el('shipDest').value,
+        status: 'pending',
+        created: new Date().toISOString()
+    };
+
+    // Deduct from inventory
+    invItem.qty -= reqQty;
+    
+    state.shipments.unshift(ship);
+    saveState();
+    el('shipmentModal').classList.add('hidden');
+    renderShipments();
+    showToast('Shipment request created');
+});
+
+window.cancelShipment = (id) => {
+    if(confirm('Cancel this shipment request?')) {
+        const shipIndex = state.shipments.findIndex(s => s.id === id);
+        if(shipIndex > -1) {
+            const ship = state.shipments[shipIndex];
+            // Return to inventory
+            const invItem = state.inventory.find(i => i.id === ship.invId);
+            if(invItem) invItem.qty += Number(ship.qty);
+            
+            state.shipments.splice(shipIndex, 1);
+            saveState();
+            renderShipments();
+            showToast('Shipment cancelled');
+        }
+    }
 }
 
-/* ---------- PROFILE ---------- */
+// --- PROFILE LOGIC ---
 function renderProfile() {
-  $("profileName").value = state.farmer.name || "";
-  $("profilePhone").value = state.farmer.phone || "";
-  $("profileEmail").value = state.farmer.email || "";
-  $("profileLocation").value = state.farmer.location || "";
-  $("profileFarmSize").value = state.farmer.farmSize || "";
-  $("profileCrops").value = state.farmer.crops || "";
+    el('profName').value = state.profile.name;
+    el('profPhone').value = state.profile.phone;
+    el('profSize').value = state.profile.size;
+    el('profLoc').value = state.profile.loc;
 }
 
-$("profileForm").addEventListener("submit", e => {
-  e.preventDefault();
-
-  state.farmer = {
-    ...state.farmer,
-    name: $("profileName").value.trim(),
-    phone: $("profilePhone").value.trim(),
-    email: $("profileEmail").value.trim(),
-    location: $("profileLocation").value.trim(),
-    farmSize: $("profileFarmSize").value.trim(),
-    crops: $("profileCrops").value.trim()
-  };
-
-  saveLocal();
-  renderAll();
-  showToast("Profile saved.");
+el('profileForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    state.profile = {
+        name: el('profName').value,
+        phone: el('profPhone').value,
+        size: el('profSize').value,
+        loc: el('profLoc').value
+    };
+    saveState();
+    el('farmerNameTop').textContent = state.profile.name;
+    showToast('Profile updated');
 });
 
-$("logoutBtn").addEventListener("click", () => {
-  /*
-    BACKEND TODO:
-    Replace with:
-    await fetch('/api/logout', { method: 'POST' });
-    window.location.href = '/login';
-  */
-  showToast("Backend logout will be connected here.");
+// Logout
+el('logoutBtn').addEventListener('click', () => {
+    window.location.href = '../actions/auth.php?action=logout';
 });
 
-/* ---------- HELPERS ---------- */
-function renderAll() {
-  renderDashboard();
-  renderStock();
-  renderShipments();
-  renderHistory();
-  renderNotifications();
-  renderProfile();
-}
-
-function formatStatus(status) {
-  return String(status).replaceAll("_", " ");
-}
-
-function formatDate(value) {
-  if (!value) return "Unknown";
-  const d = new Date(value);
-  return isNaN(d) ? value : d.toLocaleString();
-}
-
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
-renderAll();
+// Init
+renderDashboard();
