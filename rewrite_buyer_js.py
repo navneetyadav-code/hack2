@@ -1,4 +1,6 @@
-let cart = [];
+import os
+
+buyer_js = r"""let cart = [];
 
 document.addEventListener("DOMContentLoaded", () => {
     // Navigation
@@ -171,3 +173,9 @@ async function loadOrders() {
     // To be implemented fully, just showing placeholder
     document.getElementById("orderList").innerHTML = "<p style='padding:20px;'>Orders fetched from DB will appear here.</p>";
 }
+"""
+
+with open('pages/js/buyer.js', 'w', encoding='utf-8') as f:
+    f.write(buyer_js)
+
+print("buyer.js written")

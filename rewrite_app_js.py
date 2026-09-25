@@ -1,4 +1,6 @@
-const loggedInUserName = document.body.dataset.userName || 'Farmer';
+import os
+
+app_js = r"""const loggedInUserName = document.body.dataset.userName || 'Farmer';
 const state = { inventory: [] };
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -119,3 +121,9 @@ async function deleteInventory(id) {
         console.error(e);
     }
 }
+"""
+
+with open('pages/js/app.js', 'w', encoding='utf-8') as f:
+    f.write(app_js)
+
+print("app.js written")

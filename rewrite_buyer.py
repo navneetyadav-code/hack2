@@ -1,4 +1,7 @@
-<?php
+import os
+import re
+
+buyer_php = r"""<?php
 session_start();
 if (!isset($_SESSION['id']) || $_SESSION['role'] !== 'buyer') {
     header('Location: ../index.php');
@@ -123,3 +126,9 @@ if (!isset($_SESSION['id']) || $_SESSION['role'] !== 'buyer') {
   <script src="js/buyer.js"></script>
 </body>
 </html>
+"""
+
+with open('pages/buyer.php', 'w', encoding='utf-8') as f:
+    f.write(buyer_php)
+
+print("buyer.php written")

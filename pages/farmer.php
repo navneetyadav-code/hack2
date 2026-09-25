@@ -142,10 +142,14 @@ session_start();
                     </select>
                   </div>
                 </div>
-                <div class="form-row">
+                <div class="form-row two-col">
                   <div class="form-group">
                     <label>Available Date</label>
                     <input id="invDate" type="date" required>
+                  </div>
+                  <div class="form-group">
+                    <label>Price per kg (₹)</label>
+                    <input id="invPrice" type="number" min="0" step="0.01" required placeholder="0.00">
                   </div>
                 </div>
                 <div class="form-actions">
