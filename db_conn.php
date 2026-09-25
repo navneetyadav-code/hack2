@@ -3,11 +3,16 @@
 // Enable strict error reporting for mysqli to throw exceptions
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
-$sname = "localhost";
-$uname = "root";
-$password = "";
+// Load db_config.php if it exists to safely inject secrets and database configurations
+if (file_exists(dirname(__FILE__) . '/db_config.php')) {
+    require_once dirname(__FILE__) . '/db_config.php';
+}
 
-$db_name = "my_db";
+// Default Database configuration (can be overridden by db_config.php)
+$sname = isset($db_sname) ? $db_sname : "localhost";
+$uname = isset($db_uname) ? $db_uname : "root";
+$password = isset($db_password) ? $db_password : "";
+$db_name = isset($db_name_config) ? $db_name_config : "my_db";
 
 try {
     $conn = mysqli_connect($sname, $uname, $password, $db_name);
@@ -21,9 +26,6 @@ try {
 // GOOGLE OAUTH 2.0 CONFIGURATION
 // ==========================================
 // PASTE YOUR GOOGLE CLIENT ID AND SECRET HERE (OR USE db_config.php)
-if (file_exists(dirname(__FILE__) . '/db_config.php')) {
-    require_once dirname(__FILE__) . '/db_config.php';
-}
 if (!defined('GOOGLE_CLIENT_ID')) {
     define('GOOGLE_CLIENT_ID', 'YOUR_GOOGLE_CLIENT_ID_HERE');
 }
