@@ -179,7 +179,7 @@ if (!isset($_SESSION['id']) || $_SESSION['role'] !== 'buyer') {
     <div class="modal-content panel" style="max-width: 700px; width: 90%;">
       <div class="modal-header">
         <h2>Order Tracking</h2>
-        <button class="close-modal" onclick="document.getElementById('trackModal').classList.add('hidden')"><i class="fa-solid fa-xmark"></i></button>
+        <button class="close-modal" onclick="closeTrackModal()"><i class="fa-solid fa-xmark"></i></button>
       </div>
       <div id="trackModalBody" style="margin-top: 15px;"></div>
     </div>

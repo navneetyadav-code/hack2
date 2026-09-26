@@ -1,5 +1,7 @@
 let cart = [];
 let buyerOrders = [];
+let currentTrackingOrderId = null;
+let pollInterval = null;
 
 document.addEventListener("DOMContentLoaded", () => {
     // Navigation with Persistence
@@ -229,37 +231,12 @@ async function loadOrders() {
     try {
         const res = await fetch("../api/buyer_orders.php");
         buyerOrders = await res.json();
-        const container = document.getElementById("orderList");
-        
-        if (buyerOrders.length === 0) {
-            container.innerHTML = "<p style='padding:20px;'>You have no orders yet.</p>";
-            return;
-        }
-
-        container.innerHTML = buyerOrders.map(o => {
-            const itemNames = o.items.map(it => it.name).join(', ');
-            const statusColor = o.status === 'pending' ? '#d97706' : (o.status === 'rejected' ? '#b91c1c' : '#16a34a');
-            return `
-            <div class="panel" style="margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
-                <div style="flex: 1; min-width: 250px;">
-                    <h3 style="margin: 0 0 5px 0;">${itemNames}</h3>
-                    <p style="margin: 0; color: #6b7280; font-size: 14px;">
-                        Order ${o.tracking_number || '#'+o.id} • Placed on ${o.created_at.split(' ')[0]}
-                    </p>
-                    <p style="margin: 5px 0 0 0; font-weight: bold; color: #374151;">₹${o.total_amount} <span style="margin-left:10px; font-weight:normal; font-size:12px; color:${statusColor}; text-transform:uppercase;">● ${o.status}</span></p>
-                </div>
-                <div>
-                    <button class="btn-primary" onclick="openTrackModal(${o.id})"><i class="fa-solid fa-location-dot"></i> Track Order</button>
-                </div>
-            </div>
-            `;
-        }).join('');
-    } catch(e) {
-        console.error(e);
-    }
+        renderOrdersList(buyerOrders);
+    } catch(e) { console.error(e); }
 }
 
 function openTrackModal(id) {
+    currentTrackingOrderId = id;
     const o = buyerOrders.find(ord => ord.id === id);
     if (!o) return;
     
@@ -344,18 +321,7 @@ function openTrackModal(id) {
 async function loadDashboard() {
     try {
         const res = await fetch("../api/buyer_orders.php");
-        const orders = await res.json();
-        
-        let activeOrders = 0;
-        let deliveredOrders = 0;
-        
-        orders.forEach(o => {
-            if (o.status === 'delivered') deliveredOrders++;
-            else if (o.status !== 'rejected') activeOrders++;
-        });
-        
-        document.getElementById("dashActiveOrders").textContent = activeOrders;
-        document.getElementById("dashDeliveredOrders").textContent = deliveredOrders;
+        buyerOrders = await res.json();
         
         // Searches
         const history = JSON.parse(localStorage.getItem("recentSearches") || "[]");
@@ -366,19 +332,86 @@ async function loadDashboard() {
             </div>
         `).join('') : '<p style="padding:10px; color:#6b7280;">No recent searches</p>';
         
-        // Recent Orders
-        const recent = orders.slice(0, 3);
-        document.getElementById("dashOrderList").innerHTML = recent.length ? recent.map(o => `
-            <div style="padding:10px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center;">
-                <div>
-                    <strong>${o.items[0]?.name || 'Items'}</strong><br>
-                    <small>Ord #${o.id}</small>
-                </div>
-                <span class="badge" style="background:#e5e7eb; color:#374151;">${o.status}</span>
-            </div>
-        `).join('') : '<p style="padding:10px; color:#6b7280;">No recent orders</p>';
+        updateDashboardUI(buyerOrders);
+    } catch (e) { console.error(e); }
+}
+
+function closeTrackModal() {
+    currentTrackingOrderId = null;
+    document.getElementById('trackModal').classList.add('hidden');
+}
+
+async function pollUpdates() {
+    // Only poll if we are on dashboard, orders tab, or have the modal open
+    const activeTab = localStorage.getItem("buyerActiveTab") || "dashboard";
+    if (activeTab !== 'dashboard' && activeTab !== 'orders' && currentTrackingOrderId === null) return;
+    
+    try {
+        const res = await fetch("../api/buyer_orders.php");
+        buyerOrders = await res.json();
         
-    } catch (e) {
-        console.error(e);
+        if (activeTab === 'dashboard') {
+            updateDashboardUI(buyerOrders); // extract inner logic of loadDashboard
+        } else if (activeTab === 'orders') {
+            renderOrdersList(buyerOrders); // extract inner logic of loadOrders
+        }
+        
+        if (currentTrackingOrderId !== null) {
+            openTrackModal(currentTrackingOrderId); // refresh modal silently
+        }
+    } catch(e) {}
+}
+
+setInterval(pollUpdates, 5000);
+
+function updateDashboardUI(orders) {
+    let activeOrders = 0;
+    let deliveredOrders = 0;
+    
+    orders.forEach(o => {
+        if (o.status === 'delivered') deliveredOrders++;
+        else if (o.status !== 'rejected') activeOrders++;
+    });
+    
+    document.getElementById("dashActiveOrders").textContent = activeOrders;
+    document.getElementById("dashDeliveredOrders").textContent = deliveredOrders;
+    
+    // Recent Orders
+    const recent = orders.slice(0, 3);
+    document.getElementById("dashOrderList").innerHTML = recent.length ? recent.map(o => `
+        <div style="padding:10px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center;">
+            <div>
+                <strong>${o.items[0]?.name || 'Items'}</strong><br>
+                <small>Ord #${o.id}</small>
+            </div>
+            <span class="badge" style="background:#e5e7eb; color:#374151;">${o.status}</span>
+        </div>
+    `).join('') : '<p style="padding:10px; color:#6b7280;">No recent orders</p>';
+}
+
+function renderOrdersList(orders) {
+    const container = document.getElementById("orderList");
+    if (orders.length === 0) {
+        container.innerHTML = "<p style='padding:20px;'>You have no orders yet.</p>";
+        return;
     }
+
+    container.innerHTML = orders.map(o => {
+        const itemNames = o.items.map(it => it.name).join(', ');
+        const statusColor = o.status === 'pending' ? '#d97706' : (o.status === 'rejected' ? '#b91c1c' : '#16a34a');
+        return `
+        <div class="panel" style="margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+            <div style="flex: 1; min-width: 250px;">
+                <h3 style="margin: 0 0 5px 0;">${itemNames}</h3>
+                <p style="margin: 0; color: #6b7280; font-size: 14px;">
+                    Order ${o.tracking_number || '#'+o.id} • Placed on ${o.created_at.split(' ')[0]}
+                </p>
+                <p style="margin: 5px 0 0 0; font-weight: bold; color: #374151;">₹${o.total_amount} <span style="margin-left:10px; font-weight:normal; font-size:12px; color:${statusColor}; text-transform:uppercase;">● ${o.status}</span></p>
+            </div>
+            <div>
+                <button class="btn-primary" onclick="openTrackModal(${o.id})"><i class="fa-solid fa-location-dot"></i> Track Order</button>
+            </div>
+        </div>
+        `;
+    }).join('');
 }
